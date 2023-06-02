@@ -5,6 +5,7 @@
     name:
       - gnupg
       - python3-psycopg2
+      - python3-netaddr
     update_cache: yes
     state: present
 
