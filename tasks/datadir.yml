@@ -1,0 +1,40 @@
+---
+- name: PosgtreSQL | Ensure folder is exist and with right permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0750
+  with_items:
+    - "{{ postgresql_data_directory }}"
+    - "{{ postgresql_data_directory }}/main"
+
+- name: PostgreSQL | Get PostgreSQL Data Directory
+  ansible.builtin.command: awk -F "'" '/data_directory/ {print $2}' "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+  register: postgresql_data_dir_old
+  changed_when: false
+
+- block:
+
+  - name: "PostgreSQL | Stop postgresql service"
+    ansible.builtin.service:
+      name: postgresql
+      state: stopped
+      enabled: yes
+
+  - name: PosgtreSQL | Configure PostgreSQL data directory path setting
+    ansible.builtin.lineinfile:
+      dest: "/etc/postgresql/{{ postgresql_version }}/main/postgresql.conf"
+      regexp: "{{ postgresql_data_dir_old.stdout }}"
+      line: "data_directory = '{{ postgresql_data_directory }}/main'"
+      state: "present"
+
+  - name: PostgreSQL | Synchronize old and new directories
+    ansible.posix.synchronize:
+      src: "{{ postgresql_data_dir_old.stdout }}"
+      dest: "{{ postgresql_data_directory }}"
+    delegate_to: "{{ inventory_hostname }}"
+    notify: restart postgresql
+
+  when: postgresql_data_dir_old.stdout != __postgresql_data_directory
