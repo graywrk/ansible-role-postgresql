@@ -1,38 +1,67 @@
-Role Name
+graywrk.ansible_role_postgresql
 =========
 
-A brief description of the role goes here.
-
-Requirements
-------------
-
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+Role for install and configure PostgreSQL
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+```
+# validate certs for postgresql repo key
+postgresql_validate_certs: "yes"
 
-Dependencies
-------------
+# postgresql apt key name
+postgresql_apt_key: "ACCC4CF8.asc"
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+# version of postgresql (9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 10, etc)
+postgresql_version: 14
 
-Example Playbook
-----------------
+# Database port to connect to
+postgresql_port: 5432
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+# Path to postgresql.conf
+postgresql_config_path: "/etc/postgresql/{{ postgresql_version }}/main"
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+# postgresql data directory
+postgresql_data_directory: "/var/lib/postgresql/{{ postgresql_version }}/main"
+
+# path to template of pg_hba.conf
+postgresql_pghba_template_path: "{{ role_path }}/templates/pg_hba.conf.j2"
+
+# Options for postgresql config
+postgresql_config_options:
+  - option: listen_addresses
+    value: "*"
+    state: 'present' # present (default)| absent
+  - option: port
+    value: "{{ postgresql_port }}"
+
+# list of database users
+postgresql_users: []
+#  - name:
+#    password:
+#    encrypted: no (optional) (must 'yes' for postgresql version 10 and higher)
+#    role_attr_flags: NOSUPERUSER (optional) http://docs.ansible.com/ansible/latest/postgresql_user_module.html#options
+
+# list of databases
+postgresql_dbs: []
+#  - db:
+#    user:
+#    encoding: UNICODE (optional)
+#    ext: (optional)
+#      - ext1
+#      - ext2
+#    schema: (optional)
+#      - schema1
+#      - schema2
+
+# flag to create the databases 
+postgresql_create_db: true
+```
 
 License
 -------
 
-BSD
+MIT
 
-Author Information
-------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
