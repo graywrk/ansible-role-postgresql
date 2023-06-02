@@ -11,7 +11,7 @@ host    all             all             ::1/128                 trust
 # replication privilege.
 # allow app hosts
 {% for item in postgresql_dbs %}
-host  {{ item.db }}  {{ item.user | default(postgresql_users.0.name) }}  {{ ansible_default_ipv4.address }}/{{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) | ipaddr('prefix') }} md5
+host  {{ item.db }}  {{ item.user | default(postgresql_users.0.name) }}  {{ ansible_default_ipv4.address }}/{{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) | ansible.utils.ipaddr('prefix') }} md5
 {% endfor %}
 
 {% if 'pgbouncer' in group_names %}
