@@ -1,0 +1,9 @@
+---
+- name: PostgreSQL | Ensure packages are installed
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - python3-psycopg2
+    update_cache: yes
+    state: present
+
