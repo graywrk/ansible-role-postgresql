@@ -1,2 +1,3 @@
 ---
-# vars file for ansible_role_postgresql
+__postgresql_data_directory: "{{ postgresql_data_directory }}/main"
+

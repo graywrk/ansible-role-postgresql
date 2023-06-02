@@ -1,5 +1,6 @@
 ---
-- name: PostgreSQL | Ensure packages are installed
+# tasks file for ansible-role-postgresql
+- name: PostgreSQL | Ensure packeges are installed
   ansible.builtin.apt:
     name:
       - gnupg
@@ -7,3 +8,63 @@
     update_cache: yes
     state: present
 
+- name: PostgreSQL | Add apt-key
+  ansible.builtin.apt_key:
+    url: "https://www.postgresql.org/media/keys/{{ postgresql_apt_key }}"
+    validate_certs: "{{ postgresql_validate_certs }}"
+  when: postgresql_apt_key is defined
+
+- name: PostgreSQL | Add apt repo
+  ansible.builtin.apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main"
+    filename: "pgdg"
+    state: present
+    update_cache: yes
+  when: postgresql_apt_key is defined
+
+- name: PosgtreSQL | Ensure PostgreSQL packages are installed
+  ansible.builtin.apt:
+    name:
+      - sshpass # ansible-required for remote  rsync
+      - postgresql-common
+      - "postgresql-{{ postgresql_version }}"
+      - "postgresql-contrib-{{ postgresql_version }}"
+    state: present
+
+- ansible.builtin.include_tasks: datadir.yml
+
+- name: PosgtreSQL | Create pg_hba.conf
+  ansible.builtin.template:
+    src: "{{ postgresql_pghba_template_path }}"
+    dest: "{{ postgresql_config_path }}/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: 0640
+  notify: "restart postgresql"
+
+- name: PosgtreSQL | Configure PostgreSQL settings
+  ansible.builtin.lineinfile:
+    dest: "{{ postgresql_config_path }}/postgresql.conf"
+    regexp: "^#?{{ item.option }}.+$"
+    line: "{{ item.option }} = '{{ item.value }}'"
+    state: "{{ item.state | default('present') }}"
+  with_items: "{{ postgresql_config_options }}"
+  notify: "restart postgresql"
+
+- meta: flush_handlers
+
+- name: PosgtreSQL | Add Users in PostgreSQL
+  community.general.postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    encrypted: "{{ item.encrypted | default('yes') }}"
+    role_attr_flags: "{{ item.role_attr_flags | default('NOSUPERUSER') }}"
+    port: "{{ postgresql_port }}"
+  with_items: "{{ postgresql_users }}"
+
+- block:
+  - name: PostgreSQL | Include tasks
+    ansible.builtin.include_tasks: databases.yml
+  when: postgresql_create_db
+  become: true
+  become_user: postgres
